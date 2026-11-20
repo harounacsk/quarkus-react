@@ -1,0 +1,3 @@
+CREATE DATABASE IF NOT EXISTS quarkusjwt;
+GRANT ALL PRIVILEGES ON quarkusjwt.* TO 'quarkus_user'@'%';
+FLUSH PRIVILEGES;
