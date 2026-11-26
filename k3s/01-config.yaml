@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: "ffenwife298z829_98329oirwihrjwj23iuu23e2nbfnHGSWKDj87"
+  MYSQL_DATABASE: "quarkusjwt"
+  MYSQL_USER: "quarkus_user"
+  MYSQL_PASSWORD: "quarkus_DB_password0988_76iuDH"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:mysql://mysql-svc:3306/quarkusjwt?useSSL=false&allowPublicKeyRetrieval=true"

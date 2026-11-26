@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: react-nginx-config
+data:
+  default.conf: |
+    server {
+        listen 3000;
+        server_name app2.harouna-f-devops.cloud-ip.cc;
+        root /usr/share/nginx/html;
+        location / {
+          index index.html index.htm;
+          try_files $uri $uri/ /index.html;
+        }
+        # Redirige les appels /api/... vers le conteneur Quarkus
+        location /api/ {
+          proxy_pass http://quarkus-svc:8383;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }

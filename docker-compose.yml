@@ -1,0 +1,84 @@
+services:
+  mysql-svc:
+    image: mysql:8.0
+    container_name: app-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      #test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db-network
+
+  quarkus-svc:
+    image: quarkus-app
+    pull_policy: build 
+    build:
+      context: ./quarkus_app
+      dockerfile: Dockerfile
+    container_name: app-quarkus
+    restart: on-failure
+    depends_on:
+      mysql-svc:
+        condition: service_healthy
+    environment:
+      QUARKUS_HTTP_PORT: ${QUARKUS_PORT}
+      # Injection of Quarkus proprerties 
+      QUARKUS_DATASOURCE_DB_KIND: mysql
+      QUARKUS_DATASOURCE_USERNAME: ${MYSQL_USER}
+      QUARKUS_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql-svc:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true
+        # Configuration Flyway
+      QUARKUS_FLYWAY_MIGRATE_AT_START: "true"
+      QUARKUS_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      # Enabling and  et configuring CORS for all origins
+      QUARKUS_HTTP_CORS_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+      QUARKUS_HTTP_CORS_METHODS: "GET,PUT,POST,DELETE,OPTIONS"
+      QUARKUS_HTTP_CORS_HEADERS: "accept,authorization,content-type,x-requested-with"
+      QUARKUS_HTTP_CORS_ACCESS_CONTROL_ALLOW_CREDENTIALS: "false"
+    ports:
+      - "8383:8383"
+    networks:
+      - db-network
+      - web-network
+       
+
+  react-svc:
+    image: react-app
+    pull_policy: build 
+    build:
+      context: ./react_app
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${API_URL}
+    container_name: app-react
+    restart: always
+    depends_on:
+      - quarkus-svc
+    ports:
+      - "3000:3000"
+    networks:
+      - web-network
+
+volumes:
+  mysql_data:
+
+networks:
+  db-network:
+    driver: bridge
+  web-network:
+    driver: bridge
